@@ -44,3 +44,7 @@ pre code { padding: 0; background: none; }
 ul.facts { padding-left: 20px; }
 footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; padding: 24px 0 40px; margin-top: 40px; }
 @media (max-width: 520px) { .hero h1 { font-size: 30px; } article h1 { font-size: 27px; } }
+h3 { font-size: 18px; margin: 28px 0 8px; }
+.role { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; }
+.role-title { color: var(--muted); font-size: 15px; margin-top: 2px; }
+.role ul.facts { margin: 10px 0 0; }
