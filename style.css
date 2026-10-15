@@ -1,0 +1,46 @@
+:root {
+  --bg: #0b1120;
+  --panel: #111a2e;
+  --text: #e6ebf2;
+  --muted: #9aa8bb;
+  --accent: #2ec4b6;
+  --line: #1e2a44;
+  --code: #0e1628;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.7 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+header.site { border-bottom: 1px solid var(--line); }
+header.site .wrap { display: flex; justify-content: space-between; align-items: center; padding-top: 18px; padding-bottom: 18px; gap: 12px; flex-wrap: wrap; }
+.brand { color: var(--text); font-weight: 700; font-size: 18px; }
+nav a { margin-left: 18px; color: var(--muted); font-size: 15px; }
+nav a:first-child { margin-left: 0; }
+.hero { padding: 56px 0 32px; }
+.hero h1 { font-size: 40px; line-height: 1.15; margin: 0 0 12px; }
+.hero p { color: var(--muted); margin: 0 0 8px; }
+.tag { color: var(--accent); font-weight: 600; }
+h2 { font-size: 22px; margin: 40px 0 12px; }
+.post-card { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin: 12px 0; color: var(--text); }
+.post-card:hover { border-color: var(--accent); text-decoration: none; }
+.post-card .meta { color: var(--muted); font-size: 14px; }
+.post-card h3 { margin: 4px 0 6px; font-size: 20px; }
+.post-card p { margin: 0; color: var(--muted); }
+article { padding: 40px 0; }
+article h1 { font-size: 34px; line-height: 1.2; margin: 0 0 8px; }
+article .meta { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+article h2 { font-size: 24px; }
+pre, code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 14px; }
+code { background: var(--code); padding: 2px 6px; border-radius: 4px; }
+pre { background: var(--code); border: 1px solid var(--line); padding: 14px; border-radius: 8px; overflow-x: auto; }
+pre code { padding: 0; background: none; }
+ul.facts { padding-left: 20px; }
+footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; padding: 24px 0 40px; margin-top: 40px; }
+@media (max-width: 520px) { .hero h1 { font-size: 30px; } article h1 { font-size: 27px; } }

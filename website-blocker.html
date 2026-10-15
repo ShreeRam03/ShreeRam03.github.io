@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How my website blocker works | Shreeram Perumalla</title>
+<meta name="description" content="A Python tool that blocks sites through the Windows hosts file and checks VirusTotal before unblocking. How it works and four things I'd fix.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><div class="wrap">
+  <a class="brand" href="./">Shreeram Perumalla</a>
+  <nav><a href="./">Posts</a><a href="./#about">About</a><a href="https://www.linkedin.com/in/shreeram-perumalla">LinkedIn</a><a href="https://github.com/shreeram1813">GitHub</a></nav>
+</div></header>
+
+<main class="wrap">
+<article>
+  <h1>How my website blocker works, and what I'd fix in it now</h1>
+  <div class="meta">October 2026 · 6 min read · <a href="https://github.com/shreeram1813/Malicious-website-scanner-and-blocker">Code on GitHub</a></div>
+
+  <p>During my internship at Supraja Technologies I built a small Windows tool that lets an admin block websites on a machine, and refuses to unblock any site that VirusTotal flags as malicious. It's written in Python with a Tkinter interface. This post explains how it works and what I'd change now that I know more.</p>
+
+  <h2>The idea</h2>
+  <p>Most people never think about the hosts file, but every Windows machine checks it before asking DNS where a domain lives. If you map a domain to <code>127.0.0.1</code>, the browser tries to load it from your own computer, finds nothing, and the site is effectively blocked. No extra software or network appliance is needed.</p>
+  <pre><code>127.0.0.1 badsite.example</code></pre>
+  <p>Blocking is easy to do and just as easy to undo, so the interesting part is <em>who</em> is allowed to unblock a site, and <em>which</em> sites should never be unblocked.</p>
+
+  <h2>How it works</h2>
+  <ul>
+    <li><strong>Admin rights.</strong> The hosts file lives in <code>C:\Windows\System32\drivers\etc\</code>, so the tool checks for admin rights and relaunches itself elevated if it doesn't have them.</li>
+    <li><strong>A registered owner.</strong> The owner registers a Gmail address once. The tool stores only a SHA-256 hash of it, not the address itself.</li>
+    <li><strong>A one-time password.</strong> Before any block or unblock, the owner enters their email. If its hash matches, the tool emails a fresh 8-character password, and the action only goes through with that password.</li>
+    <li><strong>Blocking</strong> appends a <code>127.0.0.1 domain</code> line to the hosts file.</li>
+    <li><strong>Unblocking</strong> first asks the VirusTotal URL report API about the domain. If any engine flags it, the unblock is refused, even with the right password.</li>
+  </ul>
+  <p>That last step is the part I'm proudest of. A person can talk themselves into unblocking a site; the tool won't let them if the threat data says it's bad.</p>
+
+  <h2>Four things I'd fix now</h2>
+
+  <p><strong>1. Unblocking matches too much.</strong> The unblock code removes every hosts line that <em>contains</em> the domain text. Unblocking <code>bank.com</code> would also remove a line for <code>mybank.com</code>, or any other entry that happens to contain those letters. The fix is to parse each line and compare the hostname exactly.</p>
+
+  <p><strong>2. The one-time password uses the wrong random.</strong> It's generated with Python's <code>random</code> module, which isn't meant for security. <code>secrets.token_urlsafe()</code> or <code>secrets.choice()</code> is the right tool. I'd also add an expiry, so a password sent an hour ago stops working.</p>
+
+  <p><strong>3. Configuration belongs outside the code.</strong> The email sender details and the VirusTotal key should be read from environment variables or a local config file that's in <code>.gitignore</code>, never written into the source. Any tool that might end up in a public repo should be built that way from the first commit.</p>
+
+  <p><strong>4. VirusTotal v2 is the old API.</strong> The tool calls the v2 URL report endpoint. VirusTotal's v3 API is the current one, and it returns per-engine verdicts, so I could block on "2 or more engines say malicious" rather than "any single engine". That would cut down false positives.</p>
+
+  <h2>What I learned</h2>
+  <p>Building the blocking part took an afternoon. Most of the real work, and most of what I'd change, is in the controls around it: who can make a change, how they prove it, and what happens when the data and the human disagree. That's most of security work in general.</p>
+  <p>If you're hiring for SOC or VAPT roles in Bengaluru or Vijayawada, I'd like to talk. <a href="mailto:ramperumalla741@gmail.com">ramperumalla741@gmail.com</a></p>
+</article>
+</main>
+
+<footer><div class="wrap"><a href="./">← All posts</a> · © 2026 Shreeram Perumalla</div></footer>
+</body>
+</html>
