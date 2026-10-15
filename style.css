@@ -48,9 +48,9 @@ h3 { font-size: 18px; margin: 28px 0 8px; }
 .role { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; }
 .role-title { color: var(--muted); font-size: 15px; margin-top: 2px; }
 .role ul.facts { margin: 10px 0 0; }
-.hero { display: flex; align-items: center; gap: 32px; }
-.portrait { width: 200px; height: 250px; object-fit: cover; border-radius: 14px; border: 1px solid var(--line); flex-shrink: 0; }
+.hero { display: flex; align-items: center; gap: 24px; }
+.portrait { width: 120px; height: 120px; object-fit: cover; object-position: 50% 15%; border-radius: 50%; border: 2px solid var(--accent); flex-shrink: 0; }
 @media (max-width: 620px) {
   .hero { flex-direction: column; align-items: flex-start; gap: 20px; padding-top: 32px; }
-  .portrait { width: 160px; height: 200px; }
+  .portrait { width: 96px; height: 96px; }
 }
