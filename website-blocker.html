@@ -5,52 +5,126 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How my website blocker works | Shreeram Perumalla</title>
 <meta name="description" content="A Python tool that blocks sites through the Windows hosts file and checks VirusTotal before unblocking. How it works and four things I'd fix.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How my website blocker works, and what I'd fix in it now">
+<meta property="og:description" content="A Python tool that blocks sites through the Windows hosts file and checks VirusTotal before unblocking, plus four things I'd fix.">
+<meta property="og:image" content="https://shreeram03.github.io/photo.jpg">
+<meta property="og:url" content="https://shreeram03.github.io/website-blocker.html">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23070d1a'/%3E%3Cpath d='M16 5l9 4v6c0 6-4 10-9 12-5-2-9-6-9-12V9z' fill='none' stroke='%232ec4b6' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="progress" id="progress"></div>
 <header class="site"><div class="wrap">
-  <a class="brand" href="./">Shreeram Perumalla</a>
-  <nav><a href="./">Posts</a><a href="./#about">About</a><a href="https://www.linkedin.com/in/shreeram-perumalla">LinkedIn</a><a href="https://github.com/ShreeRam03">GitHub</a></nav>
+  <a class="brand" href="./"><span class="dot"></span>Shreeram Perumalla <span class="mono">~/security-notes</span></a>
+  <nav>
+    <a href="./#projects" class="hide-sm">Projects</a>
+    <a href="./#experience" class="hide-sm">Experience</a>
+    <a href="./#posts">Posts</a>
+    <a href="./#contact">Contact</a>
+  </nav>
 </div></header>
 
-<main class="wrap">
+<main class="wrap narrow">
 <article>
+  <div class="crumbs"><a href="./">home</a> / <a href="./#posts">posts</a> / website-blocker</div>
   <h1>How my website blocker works, and what I'd fix in it now</h1>
-  <div class="meta">October 2026 · 6 min read · <a href="https://github.com/ShreeRam03/ShreeRam03.github.io/tree/main/scanner">Code on GitHub</a></div>
+  <div class="byline">
+    <img src="photo.jpg" alt="">
+    <span><b>Shreeram Perumalla</b> · October 2026 · 6 min read</span>
+    <a href="https://github.com/ShreeRam03/ShreeRam03.github.io/tree/main/scanner">View the code →</a>
+  </div>
+
+  <div class="toc">
+    <b>// contents</b>
+    <ol>
+      <li><a href="#idea">The idea</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#fixes">Four things I'd fix now</a></li>
+      <li><a href="#learned">What I learned</a></li>
+    </ol>
+  </div>
 
   <p>During my internship at Supraja Technologies I built a small Windows tool that lets an admin block websites on a machine, and refuses to unblock any site that VirusTotal flags as malicious. It's written in Python with a Tkinter interface. This post explains how it works and what I'd change now that I know more.</p>
 
-  <h2>The idea</h2>
+  <h2 id="idea">The idea</h2>
   <p>Most people never think about the hosts file, but every Windows machine checks it before asking DNS where a domain lives. If you map a domain to <code>127.0.0.1</code>, the browser tries to load it from your own computer, finds nothing, and the site is effectively blocked. No extra software or network appliance is needed.</p>
-  <pre><code>127.0.0.1 badsite.example</code></pre>
-  <p>Blocking is easy to do and just as easy to undo, so the interesting part is <em>who</em> is allowed to unblock a site, and <em>which</em> sites should never be unblocked.</p>
+<pre><code><span class="c"># C:\Windows\System32\drivers\etc\hosts</span>
+127.0.0.1   badsite.example</code></pre>
+  <div class="callout">Blocking is easy to do and just as easy to undo. The interesting part is <strong>who</strong> is allowed to unblock a site, and <strong>which</strong> sites should never be unblocked.</div>
 
-  <h2>How it works</h2>
+  <h2 id="how">How it works</h2>
+  <div class="flow">
+    <div><i>01</i><b>Admin rights</b>Relaunches itself elevated so it can edit the hosts file.</div>
+    <div><i>02</i><b>Owner check</b>Email is matched against a stored SHA-256 hash.</div>
+    <div><i>03</i><b>One-time password</b>Emailed to the owner; required for every change.</div>
+    <div><i>04</i><b>VirusTotal gate</b>Flagged sites can't be unblocked, even with the password.</div>
+  </div>
   <ul>
     <li><strong>Admin rights.</strong> The hosts file lives in <code>C:\Windows\System32\drivers\etc\</code>, so the tool checks for admin rights and relaunches itself elevated if it doesn't have them.</li>
     <li><strong>A registered owner.</strong> The owner registers a Gmail address once. The tool stores only a SHA-256 hash of it, not the address itself.</li>
     <li><strong>A one-time password.</strong> Before any block or unblock, the owner enters their email. If its hash matches, the tool emails a fresh 8-character password, and the action only goes through with that password.</li>
     <li><strong>Blocking</strong> appends a <code>127.0.0.1 domain</code> line to the hosts file.</li>
-    <li><strong>Unblocking</strong> first asks the VirusTotal URL report API about the domain. If any engine flags it, the unblock is refused, even with the right password.</li>
+    <li><strong>Unblocking</strong> first asks the VirusTotal URL report API about the domain. If any engine flags it, the unblock is refused.</li>
   </ul>
+<pre><code><span class="k">def</span> scan_website(website):
+    url = <span class="s">"https://www.virustotal.com/vtapi/v2/url/report"</span>
+    params = {<span class="s">"apikey"</span>: virustotal_api_key, <span class="s">"resource"</span>: website}
+    response = requests.get(url, params=params)
+    <span class="k">if</span> response.status_code == 200:
+        <span class="k">return</span> response.json().get(<span class="s">"positives"</span>, 0) &gt; 0</code></pre>
   <p>That last step is the part I'm proudest of. A person can talk themselves into unblocking a site; the tool won't let them if the threat data says it's bad.</p>
 
-  <h2>Four things I'd fix now</h2>
+  <h2 id="fixes">Four things I'd fix now</h2>
+  <div class="fix">
+    <h3><span class="n">01</span>Unblocking matches too much</h3>
+    <p>The unblock code removes every hosts line that <em>contains</em> the domain text. Unblocking <code>bank.com</code> would also remove a line for <code>mybank.com</code>. The fix is to parse each line and compare the hostname exactly.</p>
+  </div>
+  <div class="fix">
+    <h3><span class="n">02</span>The one-time password uses the wrong random</h3>
+    <p>It's generated with Python's <code>random</code> module, which isn't meant for security. <code>secrets.choice()</code> is the right tool. I'd also add an expiry, so a password sent an hour ago stops working.</p>
+  </div>
+  <div class="fix">
+    <h3><span class="n">03</span>Configuration belongs outside the code</h3>
+    <p>Email sender details and the VirusTotal key should come from environment variables, never the source. The current version on GitHub reads <code>SENDER_EMAIL</code>, <code>SENDER_APP_PASSWORD</code> and <code>VT_API_KEY</code> from the environment.</p>
+  </div>
+  <div class="fix">
+    <h3><span class="n">04</span>VirusTotal v2 is the old API</h3>
+    <p>The tool calls the v2 URL report endpoint. The v3 API returns per-engine verdicts, so I could block on "2 or more engines say malicious" instead of "any single engine", which would cut down false positives.</p>
+  </div>
 
-  <p><strong>1. Unblocking matches too much.</strong> The unblock code removes every hosts line that <em>contains</em> the domain text. Unblocking <code>bank.com</code> would also remove a line for <code>mybank.com</code>, or any other entry that happens to contain those letters. The fix is to parse each line and compare the hostname exactly.</p>
-
-  <p><strong>2. The one-time password uses the wrong random.</strong> It's generated with Python's <code>random</code> module, which isn't meant for security. <code>secrets.token_urlsafe()</code> or <code>secrets.choice()</code> is the right tool. I'd also add an expiry, so a password sent an hour ago stops working.</p>
-
-  <p><strong>3. Configuration belongs outside the code.</strong> The email sender details and the VirusTotal key should be read from environment variables or a local config file that's in <code>.gitignore</code>, never written into the source. Any tool that might end up in a public repo should be built that way from the first commit.</p>
-
-  <p><strong>4. VirusTotal v2 is the old API.</strong> The tool calls the v2 URL report endpoint. VirusTotal's v3 API is the current one, and it returns per-engine verdicts, so I could block on "2 or more engines say malicious" rather than "any single engine". That would cut down false positives.</p>
-
-  <h2>What I learned</h2>
+  <h2 id="learned">What I learned</h2>
   <p>Building the blocking part took an afternoon. Most of the real work, and most of what I'd change, is in the controls around it: who can make a change, how they prove it, and what happens when the data and the human disagree. That's most of security work in general.</p>
-  <p>If you're hiring for SOC or VAPT roles in Bengaluru or Vijayawada, I'd like to talk. <a href="mailto:ramperumalla741@gmail.com">ramperumalla741@gmail.com</a></p>
+
+  <div class="author">
+    <img src="photo.jpg" alt="Shreeram Perumalla">
+    <div>
+      <b>Shreeram Perumalla</b>
+      <p>SOC &amp; VAPT focused, five security internships. Looking for Security Analyst roles in Bengaluru or Vijayawada. <a href="mailto:ramperumalla741@gmail.com">ramperumalla741@gmail.com</a></p>
+    </div>
+  </div>
 </article>
 </main>
 
-<footer><div class="wrap"><a href="./">← All posts</a> · © 2026 Shreeram Perumalla</div></footer>
+<footer><div class="wrap">
+  <span><a href="./">← All posts</a></span>
+  <span>© 2026 Shreeram Perumalla</span>
+</div></footer>
+<script>
+  (function () {
+    var bar = document.getElementById('progress');
+    function update() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    }
+    document.addEventListener('scroll', update, { passive: true });
+    update();
+  })();
+</script>
 </body>
 </html>
