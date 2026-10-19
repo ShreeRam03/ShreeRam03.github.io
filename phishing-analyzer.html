@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building a phishing email analyzer | Shreeram Perumalla</title>
+<meta name="description" content="A Python tool that reads a suspicious .eml file, checks SPF/DKIM/DMARC, sender spoofing, deceptive links and risky attachments, and gives a risk score.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Building a phishing email analyzer in Python">
+<meta property="og:description" content="Header, link and attachment checks that turn a suspicious email into a risk score with reasons.">
+<meta property="og:image" content="https://shreeram03.github.io/photo.jpg">
+<meta property="og:url" content="https://shreeram03.github.io/phishing-analyzer.html">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23070d1a'/%3E%3Cpath d='M16 5l9 4v6c0 6-4 10-9 12-5-2-9-6-9-12V9z' fill='none' stroke='%232ec4b6' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=3">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="site"><div class="wrap">
+  <a class="brand" href="./"><span class="dot"></span>Shreeram Perumalla <span class="mono">~/security-notes</span></a>
+  <nav>
+    <a href="./#projects" class="hide-sm">Projects</a>
+    <a href="./#experience" class="hide-sm">Experience</a>
+    <a href="./#posts">Posts</a>
+    <a href="./#contact">Contact</a>
+  </nav>
+</div></header>
+
+<main class="wrap narrow">
+<article>
+  <div class="crumbs"><a href="./">home</a> / <a href="./#posts">posts</a> / phishing-analyzer</div>
+  <h1>Building a phishing email analyzer in Python</h1>
+  <div class="byline">
+    <img src="photo.jpg" alt="">
+    <span><b>Shreeram Perumalla</b> · October 2026 · 5 min read</span>
+    <a href="https://github.com/ShreeRam03/phishing-email-analyzer">View the code →</a>
+  </div>
+
+  <div class="toc">
+    <b>// contents</b>
+    <ol>
+      <li><a href="#why">Why I built it</a></li>
+      <li><a href="#how">What it checks</a></li>
+      <li><a href="#example">A real run</a></li>
+      <li><a href="#learned">What I learned</a></li>
+    </ol>
+  </div>
+
+  <p>During my SOC internship at GreyTheta, a big part of the work was looking at reported emails and deciding: phishing or not? I did it by hand, reading headers and hovering over links. This tool does the same first pass automatically and explains every point it adds to the score.</p>
+
+  <h2 id="why">Why I built it</h2>
+  <p>Phishing triage is repetitive, and the signs are well known: failed sender authentication, a reply address on another domain, a link whose text says one site but points to another, an invoice that is really an <code>.exe</code>. Checking them by hand is slow and easy to get wrong when you have a queue of reports. A script that lists the evidence lets an analyst spend their time on the judgement, not the reading.</p>
+
+  <h2 id="how">What it checks</h2>
+  <div class="flow">
+    <div><i>01</i><b>Authentication</b>SPF, DKIM and DMARC results from the receiving server.</div>
+    <div><i>02</i><b>Sender</b>Reply-To or Return-Path on a different domain; brand names in the display name.</div>
+    <div><i>03</i><b>Links</b>Raw IPs, shorteners, punycode, and link text that hides the real host.</div>
+    <div><i>04</i><b>Attachments</b>Risky types, double extensions, SHA-256 for every file.</div>
+  </div>
+  <p>Each indicator adds points, and the total gives a verdict: low risk, suspicious, or high risk. VirusTotal lookups are optional. The API key is read from an environment variable, never from the code, which is a lesson I took from my <a href="website-blocker.html">website blocker</a>.</p>
+<pre><code><span class="k">def</span> check_links(email):
+    <span class="k">for</span> link <span class="k">in</span> email.links:
+        host = _domain(link.url)
+        <span class="c"># link text shows one site, href goes to another</span>
+        <span class="k">if</span> shown <span class="k">and</span> _base_domain(shown) != _base_domain(host):
+            findings.append(Finding(<span class="s">"Link"</span>, <span class="s">f"Link text shows {shown} but goes to {host}"</span>, 30))</code></pre>
+
+  <h2 id="example">A real run</h2>
+  <p>I tested it on two sample emails with fake domains: a PayPal look-alike and a genuine college newsletter.</p>
+<pre><code>Risk score: 100/100  ->  HIGH RISK - likely phishing   <span class="c"># look-alike</span>
+Risk score:   0/100  ->  LOW RISK                      <span class="c"># newsletter</span></code></pre>
+  <div class="callout">The strongest single signal was the link whose text said <strong>www.paypal.com</strong> but pointed to a raw IP address. That is exactly the check people skip when they are busy.</div>
+
+  <h2 id="learned">What I learned</h2>
+  <ul>
+    <li><strong>Read HTML, not just text.</strong> The deceptive part of a phishing link is the gap between the visible text and the <code>href</code>, so the parser has to read <code>&lt;a&gt;</code> tags.</li>
+    <li><strong>Trust the receiving server's verdict.</strong> The tool reads <code>Authentication-Results</code> rather than re-checking SPF itself, because the receiving server saw the real connection.</li>
+    <li><strong>Test with a clean email too.</strong> A detector that flags everything is useless. The genuine sample must score low, and it is a unit test.</li>
+  </ul>
+
+  <div class="author">
+    <img src="photo.jpg" alt="Shreeram Perumalla">
+    <div>
+      <b>Shreeram Perumalla</b>
+      <p>SOC &amp; VAPT focused, five security internships. Looking for Security Analyst roles in Bengaluru, Hyderabad or remote. <a href="mailto:ramperumalla741@gmail.com">ramperumalla741@gmail.com</a></p>
+    </div>
+  </div>
+</article>
+</main>
+
+<footer><div class="wrap">
+  <span><a href="./">← All posts</a></span>
+  <span>© 2026 Shreeram Perumalla</span>
+</div></footer>
+<script>
+  (function () {
+    var bar = document.getElementById('progress');
+    function update() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    }
+    document.addEventListener('scroll', update, { passive: true });
+    update();
+  })();
+</script>
+</body>
+</html>
