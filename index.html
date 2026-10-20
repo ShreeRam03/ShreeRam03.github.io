@@ -39,7 +39,7 @@
       <p class="lead">Incident monitoring, phishing and malware analysis, vulnerability assessment, and the small tools that make that work easier. This site is where I write up what I build and what I'd do better.</p>
       <div class="btns">
         <a class="btn primary" href="#contact">Get in touch</a>
-        <a class="btn" href="phishing-analyzer.html">Read the latest post</a>
+        <a class="btn" href="soc-log-analyzer.html">Read the latest post</a>
         <a class="btn" href="https://www.linkedin.com/in/shreeram-perumalla">LinkedIn</a>
       </div>
     </div>
@@ -94,6 +94,14 @@
         <h3>Phishing email analyzer</h3>
         <p>Reads a suspicious .eml file, checks SPF/DKIM/DMARC, sender spoofing, deceptive links and risky attachments, and explains its risk score.</p>
         <div class="tags"><span class="tag">Python</span><span class="tag">Email security</span><span class="tag">VirusTotal</span></div>
+        <span class="more">Read the write-up →</span>
+      </a>
+      <a class="card" href="soc-log-analyzer.html">
+        <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/><circle cx="17" cy="16" r="2.5"/></svg></div>
+        <div class="meta">Personal project · 2026</div>
+        <h3>SOC log analyzer (mini-SIEM)</h3>
+        <p>Detects brute force, password spraying, logins after repeated failures and new admin accounts in Linux and Windows logs, mapped to MITRE ATT&amp;CK.</p>
+        <div class="tags"><span class="tag">Python</span><span class="tag">SIEM</span><span class="tag">MITRE ATT&amp;CK</span></div>
         <span class="more">Read the write-up →</span>
       </a>
       <a class="card" href="website-blocker.html">
@@ -196,6 +204,15 @@
   <section class="block" id="posts">
     <div class="sec-head"><h2>Posts</h2><p>Write-ups and lessons learned</p></div>
     <div class="grid">
+      <a class="card post-feature" href="soc-log-analyzer.html">
+        <div>
+          <div class="meta">October 2026 · 5 min read · Project write-up</div>
+          <h3>Building a mini-SIEM for login attacks</h3>
+          <p>Detection rules for brute force, password spraying and logins after repeated failures, why one event should make one alert, and the unit test that stops it crying wolf.</p>
+          <div class="tags"><span class="tag">SOC</span><span class="tag">SIEM</span><span class="tag">MITRE ATT&amp;CK</span></div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
       <a class="card post-feature" href="phishing-analyzer.html">
         <div>
           <div class="meta">October 2026 · 5 min read · Project write-up</div>

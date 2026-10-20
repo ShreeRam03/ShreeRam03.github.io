@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building a mini-SIEM for login attacks | Shreeram Perumalla</title>
+<meta name="description" content="A Python tool that reads Linux auth logs and Windows Security events, detects brute force, password spraying and suspicious logins, and maps each alert to MITRE ATT&CK.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Building a mini-SIEM for login attacks">
+<meta property="og:description" content="Detection rules for brute force, password spraying and suspicious logins, mapped to MITRE ATT&CK.">
+<meta property="og:image" content="https://shreeram03.github.io/photo.jpg">
+<meta property="og:url" content="https://shreeram03.github.io/soc-log-analyzer.html">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23070d1a'/%3E%3Cpath d='M16 5l9 4v6c0 6-4 10-9 12-5-2-9-6-9-12V9z' fill='none' stroke='%232ec4b6' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=3">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="site"><div class="wrap">
+  <a class="brand" href="./"><span class="dot"></span>Shreeram Perumalla <span class="mono">~/security-notes</span></a>
+  <nav>
+    <a href="./#projects" class="hide-sm">Projects</a>
+    <a href="./#experience" class="hide-sm">Experience</a>
+    <a href="./#posts">Posts</a>
+    <a href="./#contact">Contact</a>
+  </nav>
+</div></header>
+
+<main class="wrap narrow">
+<article>
+  <div class="crumbs"><a href="./">home</a> / <a href="./#posts">posts</a> / soc-log-analyzer</div>
+  <h1>Building a mini-SIEM for login attacks</h1>
+  <div class="byline">
+    <img src="photo.jpg" alt="">
+    <span><b>Shreeram Perumalla</b> · October 2026 · 5 min read</span>
+    <a href="https://github.com/ShreeRam03/soc-log-analyzer">View the code →</a>
+  </div>
+
+  <div class="toc">
+    <b>// contents</b>
+    <ol>
+      <li><a href="#story">The story in the logs</a></li>
+      <li><a href="#rules">The detection rules</a></li>
+      <li><a href="#quiet">Teaching it to stay quiet</a></li>
+      <li><a href="#learned">What I learned</a></li>
+    </ol>
+  </div>
+
+  <p>A SIEM collects logs and runs correlation rules over them: "if this many failures happen from one IP in this many minutes, raise an alert". I wanted to understand those rules properly, so I wrote a small version myself. It reads Linux <code>auth.log</code> files and Windows Security events, and flags the login patterns an L1 SOC analyst is expected to catch.</p>
+
+  <h2 id="story">The story in the logs</h2>
+  <p>The sample logs in the repo tell one short attack story, using documentation IP ranges and fake hosts:</p>
+  <div class="flow">
+    <div><i>10:15</i><b>Brute force</b>203.0.113.50 fails 8 times against <code>root</code> in about a minute.</div>
+    <div><i>10:16</i><b>Break-in</b>The 9th attempt succeeds.</div>
+    <div><i>10:18</i><b>Persistence</b>A new account, <code>sysupdate</code>, appears.</div>
+    <div><i>13:40</i><b>Spraying</b>Another IP tries admin, test, oracle, ubuntu and guest.</div>
+  </div>
+  <p>On the Windows side, <code>Administrator</code> is brute-forced and a new account is added to an admin group. The tool turns all of that into 8 alerts: 4 High, 3 Medium, 1 Low.</p>
+
+  <h2 id="rules">The detection rules</h2>
+  <p>Each rule is a short Python function with its threshold in the signature, so it's easy to read and tune:</p>
+  <ul>
+    <li><strong>Brute force</strong> (T1110.001): 5 or more failures from one IP within 10 minutes, against 1 to 3 accounts.</li>
+    <li><strong>Password spraying</strong> (T1110.003): one IP failing against 4 or more different accounts.</li>
+    <li><strong>Login after repeated failures</strong> (T1078): a success from an IP that just failed 3 or more times. This is the alert that matters most, because it may mean the password was guessed.</li>
+    <li><strong>New account</strong> (T1136.001) and <strong>added to an admin group</strong> (T1098): classic persistence after a break-in.</li>
+    <li><strong>Off-hours login</strong> (T1078): a successful login between midnight and 5 am.</li>
+  </ul>
+<pre><code><span class="k">def</span> success_after_failures(events, min_failures=3):
+    <span class="k">for</span> e <span class="k">in</span> events:
+        <span class="k">if</span> e.action == <span class="s">"login_failed"</span>:
+            fail_count[e.ip] += 1
+        <span class="k">elif</span> e.action == <span class="s">"login_success"</span> <span class="k">and</span> fail_count[e.ip] >= min_failures:
+            <span class="c"># someone failed repeatedly, then got in</span>
+            alerts.append(...)</code></pre>
+
+  <h2 id="quiet">Teaching it to stay quiet</h2>
+  <p>My first run flagged the spraying IP twice: once as spraying and once as brute force, because its 5 failures also fell inside 10 minutes. Two alerts for one event is noise, so brute force now only fires when the failures target 1 to 3 accounts, and anything wider is left to the spraying rule.</p>
+  <div class="callout">The sample log also has a user, alice, who mistypes her password once and then logs in. That must <strong>not</strong> raise an alert, and there is a unit test that fails if it ever does.</div>
+
+  <h2 id="learned">What I learned</h2>
+  <ul>
+    <li><strong>Thresholds are decisions.</strong> "5 in 10 minutes" is a choice someone has to justify and tune; it isn't a fact.</li>
+    <li><strong>Duplicate alerts cost analyst time.</strong> One event should produce one clear alert.</li>
+    <li><strong>Mapping to MITRE ATT&amp;CK helps the next person.</strong> T1110.003 tells a colleague what happened faster than a paragraph does.</li>
+  </ul>
+
+  <div class="author">
+    <img src="photo.jpg" alt="Shreeram Perumalla">
+    <div>
+      <b>Shreeram Perumalla</b>
+      <p>SOC &amp; VAPT focused, five security internships. Looking for Security Analyst roles in Bengaluru, Hyderabad or remote. <a href="mailto:ramperumalla741@gmail.com">ramperumalla741@gmail.com</a></p>
+    </div>
+  </div>
+</article>
+</main>
+
+<footer><div class="wrap">
+  <span><a href="./">← All posts</a></span>
+  <span>© 2026 Shreeram Perumalla</span>
+</div></footer>
+<script>
+  (function () {
+    var bar = document.getElementById('progress');
+    function update() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    }
+    document.addEventListener('scroll', update, { passive: true });
+    update();
+  })();
+</script>
+</body>
+</html>
